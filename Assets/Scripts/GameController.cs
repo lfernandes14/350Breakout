@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 public class GameController : MonoBehaviour
 {
@@ -26,7 +27,13 @@ public class GameController : MonoBehaviour
 
     [SerializeField] private TMP_Text endGameText;
 
-    private BallBehaviour ball;
+    private BallBehaviour ballController;
+
+    [SerializeField] private TMP_Text livesText;
+    private int lives;
+
+    [SerializeField] private TMP_Text restartText;
+    [SerializeField] private TMP_Text launchText;
 
     // Start is called before the first frame update
     void Start()
@@ -36,7 +43,33 @@ public class GameController : MonoBehaviour
 
         endGameText.gameObject.SetActive(false);
 
-        ball = GameObject.FindObjectOfType<BallBehaviour>();
+        ballController = GameObject.FindObjectOfType<BallBehaviour>();
+
+        lives = 3;
+        livesText.text = "Lives: " + lives.ToString();
+        scoreText.text = "Score: " + score.ToString();
+
+        restartText.gameObject.SetActive(false);
+        launchText.gameObject.SetActive(true);
+    }
+
+    public void LoseALife()
+    {
+        lives--;
+        livesText.text = "Lives: " + lives.ToString();
+
+        if(lives == 0)
+        {
+            endGameText.text = "YOU HAVE FAILED!!";
+            endGameText.gameObject.SetActive(true);
+            ballController.StopBall();
+            paddle.SetActive(false);
+            restartText.gameObject.SetActive(true);
+        }
+        else
+        {
+            launchText.gameObject.SetActive(true);
+        }
     }
 
     public void UpdateScore()
@@ -48,7 +81,9 @@ public class GameController : MonoBehaviour
         {
             endGameText.text = "YOU WIN!!!";
             endGameText.gameObject.SetActive(true);
-            ball.ResetBall();
+            ballController.StopBall();
+            paddle.SetActive(false);
+            restartText.gameObject.SetActive(true);
         }
     }
 
@@ -86,43 +121,52 @@ public class GameController : MonoBehaviour
         move.canceled += Move_canceled;
     }
 
+    private void OnDestroy()
+    {
+        move.started -= Move_started;
+        restart.performed -= Restart_started;
+        quit.performed -= Quit_started;
+        launchBall.started -= LaunchBall_started;
+        move.canceled -= Move_canceled;
+    }
+
     private void LaunchBall_started(InputAction.CallbackContext obj)
     {
-        ball.LaunchTheBall();
+        ballController.LaunchTheBall();
+        launchText.gameObject.SetActive(false);
     }
 
     private void Move_started(InputAction.CallbackContext obj)
     {
-        print("Move Started");
         isPaddleMoving = true;
     }
 
     private void Move_canceled(InputAction.CallbackContext obj)
     {
-        print("Move Cancelled");
         isPaddleMoving = false;
     }
 
     private void Quit_started(InputAction.CallbackContext obj)
     {
-        print("Quit Cancelled");
+        Application.Quit();
+        //UnityEditor.EditorApplication.isPlaying = false;
     }
 
     private void Restart_started(InputAction.CallbackContext obj)
     {
-        print("Restart Cancelled");
+        SceneManager.LoadScene(0);
+        restartText.gameObject.SetActive(false);
     }
 
     private void FixedUpdate()
     {
         if(isPaddleMoving)
         {
-            //print("paddle moving");
+            
             paddle.GetComponent<Rigidbody2D>().velocity = new Vector2(paddleSpeed * moveDirection, 0);            
         }
         else
         {
-            //print("paddle NOT moving");
             paddle.GetComponent<Rigidbody2D>().velocity = Vector2.zero;
         }
     }
